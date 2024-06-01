@@ -29,4 +29,4 @@ df_origin = pd.read_csv('c:/work/Airbnb_Data.csv', encoding='utf-8')
 - KNNClassification.py
   
 data = pd.read_csv('c:/work/Airbnb_Data.csv')
-#### + Include data preprocessing in each python code in algorithm folder
+## + Include data preprocessing in each python code in algorithm folder
