@@ -92,8 +92,6 @@ for i, column in enumerate(numeric_data.columns, 1):
 plt.tight_layout()
 plt.show()
 
-
-
 # Change dtype (shape unification with cleaning_fee)
 pd.set_option('future.no_silent_downcasting', True)
 df['instant_bookable'] = df['instant_bookable'].replace({'t': True, 'f': False})
@@ -117,15 +115,12 @@ numerical_cols = ['log_price', 'accommodates', 'bathrooms', 'bedrooms', 'latitud
 # Standard Scaling
 scaler = StandardScaler()
 df_encoded[numerical_cols] = scaler.fit_transform(df_encoded[numerical_cols])
+
 print("StandardScaling", end="\n\n")
 print(df_encoded[numerical_cols].head())
 
-
 X = df_encoded.drop(columns=['log_price'])
 y = df_encoded['log_price']
-
-
-
 
 model = RandomForestRegressor()
 model.fit(X, y)
@@ -164,11 +159,13 @@ plt.tight_layout()  # Layout adjustments prevent elements from being cut.
 plt.show()
 
 
+
+
 # Splitting the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Setting up the range of k values
-k_values = range(1, X_train.shape[1] + 1)
+k_values = range(1, X_train.shape[1])
 mean_mse_scores = []
 
 # Performing cross-validation for each k value
@@ -183,9 +180,12 @@ for k in k_values:
     mse_scores = -cross_val_score(pipeline, X_train, y_train, cv=5, scoring='neg_mean_squared_error')
     mean_mse_scores.append(np.mean(mse_scores))
 
-# Finding the optimal k value
-optimal_k = k_values[np.argmin(mean_mse_scores)]
-print(f"Optimal k: {optimal_k}")
+# Find the top five k values
+top_k_indices = np.argsort(mean_mse_scores)[:5]
+top_k_values = [k_values[i] for i in top_k_indices]
+
+print("Top 5 k values based on mean squared error:")
+print(top_k_values)
 
 # Plotting the k MSE graph
 plt.figure(figsize=(10, 6))
@@ -195,57 +195,99 @@ plt.ylabel('Mean Squared Error')
 plt.title('Mean Squared Error vs. Number of Features')
 plt.show()
 
-# Using the optimal k value for feature selection
-selector = SelectKBest(score_func=f_regression, k=optimal_k)
-X_selected = selector.fit_transform(X, y)
-
-# Get the indices of selected features
-selected_indices = selector.get_support(indices=True)
-
-# Get the names of selected features
-selected_features = X.columns[selected_indices]
-
-print("Selected Features:")
-print(selected_features)
 
 
+
+
+# Initialize an empty list to store the selected features
+selected_features_list = []
+
+for optimal_k in top_k_values:
+    # Using the optimal k value for feature selection
+    selector = SelectKBest(score_func=f_regression, k=optimal_k)
+    X_selected = selector.fit_transform(X, y)
+
+    # Get the indices of selected features
+    selected_indices = selector.get_support(indices=True)
+
+    # Get the names of selected features
+    selected_features = X.columns[selected_indices]
+    
+    # Append the selected features to the list
+    selected_features_list.append(selected_features)
+
+# Print the selected features for each k value
+for i, optimal_k in enumerate(top_k_values):
+    print(f"k {optimal_k} Selected Features:")
+    print(selected_features_list[i])
+
+
+
+
+
+
+
+
+model = LinearRegression()
 
 # Training the multiple linear regression model
-model = LinearRegression()
-model.fit(X_selected, y)
-y_pred = model.predict(X_selected)
+for i in range(5):
+    # Convert selected features to numpy array
+    X_selected_features = X[selected_features_list[i]].values
+    
+    model.fit(X_selected_features, y)
+    y_pred = model.predict(X_selected_features)
 
-# Plotting the comparison graph between actual and predicted prices
-plt.figure(figsize=(10, 6))
-plt.scatter(y, y_pred, alpha=0.5)
-plt.plot([min(y), max(y)], [min(y), max(y)], color='red', linestyle='--', linewidth=2)
-plt.xlabel("Actual Values")
-plt.ylabel("Predicted Values")
-plt.title("Actual vs Predicted Values")
-plt.show()
+    # Plotting the comparison graph between actual and predicted prices
+    plt.figure(figsize=(10, 6))
+    plt.scatter(y, y_pred, alpha=0.5)
+    plt.plot([min(y), max(y)], [min(y), max(y)], color='red', linestyle='--', linewidth=2)
+    plt.xlabel("Actual Values")
+    plt.ylabel("Predicted Values")
+    plt.title("Actual vs Predicted Values using k: {}".format(top_k_values[i]))
+    plt.show()
+
+
+
+
+
+
+
+
+
 
 
 # Set up K-Fold cross-validation
 kf = KFold(n_splits=5, shuffle=True, random_state=0)
 
-# Initializing the list
-scores=[]
+# Initialize a dictionary to store the results for each k value
+results = {}
 
+model = LinearRegression()
+
+fold_scores = []
 # Performing model execution and evaluation using K-Fold
-for train_index, test_index in kf.split(X_selected):
-    X_train, X_test = X_selected[train_index], X_selected[test_index]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+for i in range(5):
+    for train_index, test_index in kf.split(selected_features_list[i]):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        
+        # Model training
+        model.fit(X_train, y_train)
     
-    # Model training
-    model.fit(X_train, y_train)
+        # Prediction
+        y_pred = model.predict(X_test)
+        
+        # Append the score to the list of fold scores
+        score=model.score(X_test, y_test)
+        fold_scores.append(score)
     
-    # Prediction
-    y_pred = model.predict(X_test)
+    # Calculate the average accuracy score for this k value
+    avg_score = np.mean(fold_scores)
+    
+    # Store the results for this k value
+    results[i] = {'avg_score': avg_score}
 
-    score=model.score(X_test, y_test)
-    scores.append(score)
-    
-
-# Printing k-fold cross validation result
-print("Cross validation Accuracy: {}".format(scores))
-print("Average Accuracy score: {}" .format(np.mean(scores)))
+# Print the results
+for k, result in results.items():
+    print(f"Average Accuracy for k={top_k_values[k]}: {result['avg_score']}")
