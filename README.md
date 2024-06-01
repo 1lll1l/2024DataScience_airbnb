@@ -24,8 +24,10 @@ In order to import data correctly, the data file must be located in the followin
 If you want to save the data in a different location, modify the next part of the file to change the path of the data file
 
 - multipleLinearRegression.py
+  
 df_origin = pd.read_csv('c:/work/Airbnb_Data.csv', encoding='utf-8')
 
 - KNNClassification.py
+  
 data = pd.read_csv('c:/work/Airbnb_Data.csv')
 
