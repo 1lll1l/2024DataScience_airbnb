@@ -23,7 +23,7 @@ In order to import data correctly, the data file must be located in the followin
 ### Change the data path from the code
 If you want to save the data in a different location, modify the next part of the file to change the path of the data file
 
-- multipleLinearRegression.py
+- MultipleLinearRegression.py
   
 df_origin = pd.read_csv('c:/work/Airbnb_Data.csv', encoding='utf-8')
 
