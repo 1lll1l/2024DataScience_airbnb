@@ -9,7 +9,6 @@ The main objective of this project is to forecast the price of an Airbnb accommo
 1. Go to the kaggle page below and download it
 https://www.kaggle.com/datasets/paramvir705/airbnb-data/code
 
-2. Go to the 'Data' folder in this GitHub repository and download the Airbnb_Data.csv file.
 ## Data file setting
 This project uses the Airbnb_Data.csv file.  
 In order to import data correctly, the data file must be located in the following path:
